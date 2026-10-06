@@ -58,3 +58,18 @@ def test_fill_missing_process_memory_uses_counter_values():
     ]
     filled = fill_missing_memory(processes, {(0, 10): 999})
     assert [p.used_memory for p in filled] == [999, 1234, None]
+
+
+def test_fill_load_sets_values_and_leaves_unknown_as_zero_only_when_counters_ran():
+    from gpu_vram_cleaner.models import GpuProcess
+    from gpu_vram_cleaner.provider import fill_load
+
+    processes = [GpuProcess(10, "game.exe", 0, 1, "G"), GpuProcess(20, "idle.exe", 0, 1, "G")]
+    filled = fill_load(processes, {(0, 10): 42.0})
+    assert [p.load_pct for p in filled] == [42.0, 0.0]
+    assert [p.load_pct for p in fill_load(processes, None)] == [None, None]
+
+
+def test_demo_processes_report_a_load():
+    provider = DemoGpuProvider(seed=1)
+    assert all(p.load_pct is not None and 0 <= p.load_pct <= 100 for p in provider.processes())
