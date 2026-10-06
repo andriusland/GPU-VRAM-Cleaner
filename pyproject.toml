@@ -1,6 +1,6 @@
 [project]
 name = "gpu-vram-cleaner"
-version = "0.2.0"
+version = "0.2.1"
 description = "Terminal UI to monitor NVIDIA GPUs and free VRAM by closing the processes that use it"
 readme = "README.md"
 license = "Apache-2.0"

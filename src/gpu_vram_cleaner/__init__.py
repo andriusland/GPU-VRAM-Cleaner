@@ -5,7 +5,7 @@ import sys
 
 from colorama import Fore, Style, just_fix_windows_console
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 
 def build_parser() -> argparse.ArgumentParser:
