@@ -45,3 +45,16 @@ def test_demo_provider_can_forget_killed_processes():
     pid = provider.processes()[0].pid
     provider.forget(pid)
     assert pid not in {p.pid for p in provider.processes()}
+
+
+def test_fill_missing_process_memory_uses_counter_values():
+    from gpu_vram_cleaner.models import GpuProcess
+    from gpu_vram_cleaner.provider import fill_missing_memory
+
+    processes = [
+        GpuProcess(10, "game.exe", 0, None, "C+G"),
+        GpuProcess(20, "cuda.exe", 0, 1234, "C"),
+        GpuProcess(30, "idle.exe", 0, None, "G"),
+    ]
+    filled = fill_missing_memory(processes, {(0, 10): 999})
+    assert [p.used_memory for p in filled] == [999, 1234, None]
