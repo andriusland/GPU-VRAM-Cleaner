@@ -63,8 +63,10 @@ login session and drivers keep working:
 
 Protected rows are marked `protected` in the list. Everything else that holds VRAM (games, browsers,
 Python/CUDA jobs, Blender, OBS, Discord, ...) is closed: first politely (`terminate`), then forcefully
-(`kill`) if it does not exit within 3 seconds. Closing processes owned by other users requires running the
-terminal as administrator.
+(`kill`) if it does not exit within 3 seconds. The whole app is closed, not just the process holding VRAM:
+browsers and Electron apps (Chrome, Edge, Discord, Claude, VS Code) keep the GPU in a helper process that the
+main window would respawn at once. Closing processes owned by other users requires running the terminal as
+administrator.
 
 ## Install
 

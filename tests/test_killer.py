@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import time
 
 import psutil
 import pytest
@@ -75,3 +76,41 @@ def test_demo_killer_never_touches_real_processes(sleeper):
     assert DemoKiller(provider).kill(first.pid).name == first.name
     assert DemoKiller(provider).kill(sleeper.pid).outcome is KillOutcome.KILLED
     assert sleeper.poll() is None
+
+
+SPAWNER = """
+import subprocess, sys, time
+child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+child.wait()
+time.sleep(60)
+"""
+
+
+@pytest.fixture
+def app_with_helper():
+    """A parent process with a same-named child, like Chrome and its GPU process."""
+    parent = subprocess.Popen([sys.executable, "-c", SPAWNER])
+    deadline = time.monotonic() + 15
+    leaf = None
+    while time.monotonic() < deadline:
+        family = psutil.Process(parent.pid).children(recursive=True)
+        leaves = [p for p in family if not p.children()]
+        if leaves:
+            leaf = leaves[-1]
+            break
+        time.sleep(0.1)
+    assert leaf is not None, "helper process never started"
+    yield parent, leaf
+    for proc in psutil.Process(parent.pid).children(recursive=True) if parent.poll() is None else []:
+        proc.kill()
+    if parent.poll() is None:
+        parent.kill()
+    parent.wait()
+
+
+def test_kill_closes_the_whole_app_when_a_helper_process_holds_the_gpu(app_with_helper):
+    parent, helper = app_with_helper
+    result = ProcessKiller(timeout=5).kill(helper.pid)
+    assert result.outcome is KillOutcome.KILLED
+    # Killing only the helper would let the app respawn it; the parent must be gone too.
+    parent.wait(timeout=10)
