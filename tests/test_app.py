@@ -129,10 +129,17 @@ async def test_theme_menu_offers_all_themes_and_switches(tmp_path):
         assert isinstance(app.screen, ThemeScreen)
         options = app.screen.query_one(OptionList)
         assert options.option_count == 7
-        await pilot.press("down", "enter")
+        assert options.get_option_at_index(options.highlighted).id == "vram-synthwave"
+        await pilot.press("up", "enter")
         await pilot.pause()
-        assert app.theme == "vram-ocean"
-        assert '"vram-ocean"' in (tmp_path / "s.json").read_text()
+        assert app.theme == "vram-paper"
+        assert '"vram-paper"' in (tmp_path / "s.json").read_text()
+
+
+async def test_synthwave_neon_is_the_default_theme(tmp_path):
+    app, _ = make_app(tmp_path)
+    async with app.run_test(size=(140, 50)):
+        assert app.theme == "vram-synthwave"
 
 
 async def test_radical_clean_needs_two_red_confirmations(tmp_path):
