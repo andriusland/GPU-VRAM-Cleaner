@@ -217,6 +217,9 @@ class ConfirmDialog(ModalScreen[bool]):
         self.title_text = title
         self.message = message
         self.default_yes = default_yes
+        # Textual's own auto-focus would otherwise grab "Yes" (the first button) when the screen
+        # activates, racing a focus set in on_mount; a dangerous dialog must start on "Cancel".
+        self.AUTO_FOCUS = "#yes" if default_yes else "#cancel"
 
     def compose(self) -> ComposeResult:
         with Vertical(id="dialog"):
@@ -225,9 +228,6 @@ class ConfirmDialog(ModalScreen[bool]):
             with Horizontal():
                 yield Button("Yes", id="yes", variant="error")
                 yield Button("Cancel", id="cancel", variant="primary")
-
-    def on_mount(self) -> None:
-        self.query_one("#yes" if self.default_yes else "#cancel", Button).focus()
 
     @on(Button.Pressed)
     def choose(self, event: Button.Pressed) -> None:
