@@ -122,18 +122,53 @@ async def test_theme_menu_offers_six_themes_and_switches(tmp_path):
         assert '"vram-ocean"' in (tmp_path / "s.json").read_text()
 
 
-async def test_radical_clean_kills_unprotected_processes_after_confirmation(tmp_path):
+async def test_radical_clean_needs_two_red_confirmations(tmp_path):
     app, killer = make_app(tmp_path)
     async with app.run_test(size=(140, 50)) as pilot:
         app.action_radical_clean()
         await pilot.pause()
-        assert isinstance(app.screen, ConfirmDialog)
-        assert app.screen.focused.id == "cancel"
-        app.screen.query_one("#yes", Button).press()
+        first = app.screen
+        assert isinstance(first, ConfirmDialog)
+        assert "Dangerous" in first.title_text
+        assert first.has_class("-danger")
+        assert first.focused.id == "cancel"
+        first.query_one("#yes", Button).press()
+        await pilot.pause()
+
+        second = app.screen
+        assert isinstance(second, ConfirmDialog) and second is not first
+        assert second.has_class("-danger")
+        assert "This can be potentially unsafe for your system" in second.message
+        assert second.focused.id == "cancel"
+        assert killer.radical_calls == []
+
+        second.query_one("#yes", Button).press()
         await pilot.pause()
         await app.workers.wait_for_complete()
         assert len(killer.radical_calls) == 1
         assert 303 not in killer.radical_calls[0]
+
+
+async def test_cancelling_the_second_radical_confirmation_kills_nothing(tmp_path):
+    app, killer = make_app(tmp_path)
+    async with app.run_test(size=(140, 50)) as pilot:
+        app.action_radical_clean()
+        await pilot.pause()
+        app.screen.query_one("#yes", Button).press()
+        await pilot.pause()
+        await pilot.press("enter")
+        await pilot.pause()
+        await app.workers.wait_for_complete()
+        assert killer.radical_calls == []
+        assert not isinstance(app.screen, ConfirmDialog)
+
+
+async def test_close_process_dialog_is_not_marked_dangerous(tmp_path):
+    app, _ = make_app(tmp_path)
+    async with app.run_test(size=(140, 50)) as pilot:
+        await pilot.press("delete")
+        await pilot.pause()
+        assert not app.screen.has_class("-danger")
 
 
 async def test_delete_on_protected_process_does_not_offer_to_close(tmp_path):
