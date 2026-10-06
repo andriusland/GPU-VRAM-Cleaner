@@ -12,7 +12,7 @@ class FakeProvider:
             GpuInfo(1, "RTX Test B", "555.55", 40, 10, 1 * 1024**3, 8 * 1024**3, None),
         ]
         self.process_list = [
-            GpuProcess(101, "game.exe", 0, 3 * 1024**3, "G"),
+            GpuProcess(101, "game.exe", 0, 3 * 1024**3, "G", load_pct=93.0),
             GpuProcess(202, "trainer.exe", 0, 2 * 1024**3, "C"),
             GpuProcess(303, "dwm.exe", 1, 256 * 1024**2, "G"),
         ]
@@ -179,3 +179,15 @@ async def test_delete_on_protected_process_does_not_offer_to_close(tmp_path):
         await pilot.pause()
         assert not isinstance(app.screen, ConfirmDialog)
         assert killer.killed == []
+
+
+async def test_process_list_shows_load_column(tmp_path):
+    app, _ = make_app(tmp_path)
+    async with app.run_test(size=(140, 50)):
+        table = app.query_one(DataTable)
+        labels = [str(column.label) for column in table.columns.values()]
+        assert "Load" in labels
+        row = table.get_row_at(0)
+        load_cell = row[labels.index("Load")]
+        assert str(load_cell) == "93%"
+        assert str(table.get_row_at(1)[labels.index("Load")]) == "N/A"

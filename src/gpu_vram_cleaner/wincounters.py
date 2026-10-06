@@ -7,13 +7,26 @@ which is where Task Manager gets its "Dedicated GPU memory" column.
 
 import re
 import sys
+from dataclasses import dataclass, field
 
 _INSTANCE = re.compile(r"^(?:pid_(\d+)_)?luid_(0x[0-9a-f]+_0x[0-9a-f]+)_phys_\d+$", re.IGNORECASE)
 
+_ENGINE = re.compile(
+    r"^pid_(\d+)_luid_(0x[0-9a-f]+_0x[0-9a-f]+)_phys_\d+_eng_\d+_engtype_(.*)$", re.IGNORECASE
+)
+
 PROCESS_COUNTER = r"\GPU Process Memory(*)\Dedicated Usage"
 ADAPTER_COUNTER = r"\GPU Adapter Memory(*)\Dedicated Usage"
+ENGINE_COUNTER = r"\GPU Engine(*)\Utilization Percentage"
 
 Samples = dict[str, float]
+
+
+@dataclass(frozen=True)
+class CounterSnapshot:
+    processes: Samples = field(default_factory=dict)
+    adapters: Samples = field(default_factory=dict)
+    engines: Samples = field(default_factory=dict)
 
 
 def parse_instance(name: str) -> tuple[int | None, str] | None:
@@ -23,6 +36,14 @@ def parse_instance(name: str) -> tuple[int | None, str] | None:
         return None
     pid = int(match.group(1)) if match.group(1) else None
     return pid, match.group(2).lower()
+
+
+def parse_engine_instance(name: str) -> tuple[int, str, str] | None:
+    """Split a GPU Engine instance name into (pid, adapter LUID, engine type)."""
+    match = _ENGINE.match(name)
+    if not match:
+        return None
+    return int(match.group(1)), match.group(2).lower(), match.group(3)
 
 
 def adapter_totals(adapter_samples: Samples) -> dict[str, int]:
@@ -48,13 +69,15 @@ def match_adapters(nvml_used: dict[int, int], totals: dict[str, int]) -> dict[in
     return matched
 
 
+def _gpu_of_luid(nvml_used: dict[int, int], adapter_samples: Samples) -> dict[str, int]:
+    return {luid: gpu for gpu, luid in match_adapters(nvml_used, adapter_totals(adapter_samples)).items()}
+
+
 def process_memory_by_gpu(
     nvml_used: dict[int, int], process_samples: Samples, adapter_samples: Samples
 ) -> dict[tuple[int, int], int]:
     """Dedicated VRAM per (gpu index, pid) for the NVIDIA GPUs only."""
-    gpu_of_luid = {
-        luid: gpu for gpu, luid in match_adapters(nvml_used, adapter_totals(adapter_samples)).items()
-    }
+    gpu_of_luid = _gpu_of_luid(nvml_used, adapter_samples)
     result: dict[tuple[int, int], int] = {}
     for name, value in process_samples.items():
         parsed = parse_instance(name)
@@ -62,6 +85,24 @@ def process_memory_by_gpu(
             continue
         key = (gpu_of_luid[parsed[1]], parsed[0])
         result[key] = result.get(key, 0) + int(value)
+    return result
+
+
+def process_load_by_gpu(
+    nvml_used: dict[int, int], engine_samples: Samples, adapter_samples: Samples
+) -> dict[tuple[int, int], float]:
+    """GPU load per (gpu index, pid): the busiest engine type, as Task Manager shows it."""
+    gpu_of_luid = _gpu_of_luid(nvml_used, adapter_samples)
+    per_type: dict[tuple[int, int, str], float] = {}
+    for name, value in engine_samples.items():
+        parsed = parse_engine_instance(name)
+        if not parsed or parsed[1] not in gpu_of_luid:
+            continue
+        key = (gpu_of_luid[parsed[1]], parsed[0], parsed[2])
+        per_type[key] = per_type.get(key, 0.0) + value
+    result: dict[tuple[int, int], float] = {}
+    for (gpu, pid, _), value in per_type.items():
+        result[(gpu, pid)] = min(100.0, max(result.get((gpu, pid), 0.0), value))
     return result
 
 
@@ -113,7 +154,7 @@ class WindowsGpuMemoryCounters:
         if pdh.PdhOpenQueryW(None, 0, ctypes.byref(query)) != 0:
             return
         self._query = query
-        for path in (PROCESS_COUNTER, ADAPTER_COUNTER):
+        for path in (PROCESS_COUNTER, ADAPTER_COUNTER, ENGINE_COUNTER):
             counter = wintypes.HANDLE()
             if pdh.PdhAddEnglishCounterW(query, path, 0, ctypes.byref(counter)) != 0:
                 self.close()
@@ -121,36 +162,46 @@ class WindowsGpuMemoryCounters:
             self._counters.append(counter)
         self.available = True
 
-    def _read(self, counter) -> Samples:
+    def _read(self, counter, as_double: bool = False) -> Samples:
         ctypes, wintypes = self._ctypes, self._wintypes
+        number = ctypes.c_double if as_double else ctypes.c_longlong
 
         class Value(ctypes.Structure):
-            _fields_ = [("CStatus", wintypes.DWORD), ("largeValue", ctypes.c_longlong)]
+            _fields_ = [("CStatus", wintypes.DWORD), ("value", number)]
 
         class Item(ctypes.Structure):
             _fields_ = [("szName", wintypes.LPWSTR), ("FmtValue", Value)]
 
-        pdh_fmt_large, pdh_more_data = 0x00000400, 0x800007D2
+        pdh_fmt_large, pdh_fmt_double, pdh_fmt_nocap100 = 0x00000400, 0x00000200, 0x00008000
+        pdh_more_data = 0x800007D2
+        fmt = (pdh_fmt_double | pdh_fmt_nocap100) if as_double else pdh_fmt_large
         size, count = wintypes.DWORD(0), wintypes.DWORD(0)
         status = self._pdh.PdhGetFormattedCounterArrayW(
-            counter, pdh_fmt_large, ctypes.byref(size), ctypes.byref(count), None
+            counter, fmt, ctypes.byref(size), ctypes.byref(count), None
         )
         if status != pdh_more_data or size.value == 0:
             return {}
         buffer = (ctypes.c_byte * size.value)()
         status = self._pdh.PdhGetFormattedCounterArrayW(
-            counter, pdh_fmt_large, ctypes.byref(size), ctypes.byref(count), buffer
+            counter, fmt, ctypes.byref(size), ctypes.byref(count), buffer
         )
         if status != 0:
             return {}
         items = ctypes.cast(buffer, ctypes.POINTER(Item * count.value)).contents
-        return {item.szName: float(item.FmtValue.largeValue) for item in items if item.FmtValue.CStatus == 0}
+        return {item.szName: float(item.FmtValue.value) for item in items if item.FmtValue.CStatus == 0}
 
-    def snapshot(self) -> tuple[Samples, Samples]:
-        """(process samples, adapter samples) keyed by counter instance name."""
+    def snapshot(self) -> CounterSnapshot:
+        """Current per-process memory, adapter memory and engine utilisation samples.
+
+        Engine utilisation is a rate, so it is only available from the second snapshot on.
+        """
         if not self.available or self._pdh.PdhCollectQueryData(self._query) != 0:
-            return {}, {}
-        return self._read(self._counters[0]), self._read(self._counters[1])
+            return CounterSnapshot()
+        return CounterSnapshot(
+            self._read(self._counters[0]),
+            self._read(self._counters[1]),
+            self._read(self._counters[2], as_double=True),
+        )
 
     def close(self) -> None:
         if self._query is not None:

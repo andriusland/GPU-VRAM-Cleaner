@@ -8,7 +8,7 @@ from typing import Protocol
 import psutil
 
 from .models import GpuInfo, GpuProcess
-from .wincounters import WindowsGpuMemoryCounters, process_memory_by_gpu
+from .wincounters import WindowsGpuMemoryCounters, process_load_by_gpu, process_memory_by_gpu
 
 
 class GpuProviderError(RuntimeError):
@@ -40,6 +40,13 @@ def fill_missing_memory(processes: list[GpuProcess], memory: dict[tuple[int, int
     ]
 
 
+def fill_load(processes: list[GpuProcess], load: dict[tuple[int, int], float] | None) -> list[GpuProcess]:
+    """Attach per-process GPU load; ``None`` means no load source is available yet."""
+    if load is None:
+        return processes
+    return [replace(p, load_pct=load.get((p.gpu_index, p.pid), 0.0)) for p in processes]
+
+
 class NvmlGpuProvider:
     """Reads NVIDIA GPUs through NVML (nvidia-ml-py)."""
 
@@ -57,6 +64,7 @@ class NvmlGpuProvider:
         self._handles = [pynvml.nvmlDeviceGetHandleByIndex(i) for i in range(pynvml.nvmlDeviceGetCount())]
         self._names = [self._text(pynvml.nvmlDeviceGetName(h)) for h in self._handles]
         self._counters = WindowsGpuMemoryCounters()
+        self._last_sample = [0] * len(self._handles)
 
     @staticmethod
     def _text(value: str | bytes) -> str:
@@ -102,23 +110,47 @@ class NvmlGpuProvider:
                     key = (index, proc.pid)
                     if key in found:
                         previous = found[key]
-                        found[key] = GpuProcess(proc.pid, previous.name, index, previous.used_memory, "C+G")
+                        found[key] = replace(previous, kind="C+G")
                         continue
                     used = getattr(proc, "usedGpuMemory", None)
                     found[key] = GpuProcess(proc.pid, _process_name(proc.pid), index, used, kind)
         processes = list(found.values())
-        if self._counters.available and any(p.used_memory is None for p in processes):
-            processes = fill_missing_memory(processes, self._counter_memory())
+        if self._counters.available:
+            nvml_used = self._nvml_used()
+            snapshot = self._counters.snapshot()
+            memory = process_memory_by_gpu(nvml_used, snapshot.processes, snapshot.adapters)
+            processes = fill_missing_memory(processes, memory)
+            if snapshot.engines:
+                processes = fill_load(
+                    processes, process_load_by_gpu(nvml_used, snapshot.engines, snapshot.adapters)
+                )
+        else:
+            processes = fill_load(processes, self._nvml_load())
         return sorted(processes, key=lambda p: (p.gpu_index, -(p.used_memory or 0), p.pid))
 
-    def _counter_memory(self) -> dict[tuple[int, int], int]:
+    def _nvml_used(self) -> dict[int, int]:
         nvml_used = {}
         for index, handle in enumerate(self._handles):
             memory = self._optional(self._nvml.nvmlDeviceGetMemoryInfo, handle)
             if memory:
                 nvml_used[index] = memory.used
-        process_samples, adapter_samples = self._counters.snapshot()
-        return process_memory_by_gpu(nvml_used, process_samples, adapter_samples)
+        return nvml_used
+
+    def _nvml_load(self) -> dict[tuple[int, int], float] | None:
+        """Per-process SM utilisation from NVML (Linux and TCC mode; not available under WDDM)."""
+        load: dict[tuple[int, int], float] = {}
+        supported = False
+        for index, handle in enumerate(self._handles):
+            samples = self._optional(
+                self._nvml.nvmlDeviceGetProcessUtilization, handle, self._last_sample[index]
+            )
+            if samples is None:
+                continue
+            supported = True
+            for sample in samples:
+                load[(index, sample.pid)] = float(sample.smUtil)
+                self._last_sample[index] = max(self._last_sample[index], sample.timeStamp)
+        return load if supported else None
 
     def close(self) -> None:
         self._counters.close()
@@ -177,7 +209,12 @@ class DemoGpuProvider:
         return result
 
     def processes(self) -> list[GpuProcess]:
-        return list(self._processes)
+        return [
+            replace(
+                p, load_pct=round(min(100.0, (p.used_memory or 0) / 1024**3 * self._random.uniform(2, 14)), 1)
+            )
+            for p in self._processes
+        ]
 
     def forget(self, pid: int) -> None:
         self._processes = [p for p in self._processes if p.pid != pid]

@@ -19,7 +19,8 @@ system and the processes holding its VRAM, and lets you close them to free memor
   | Fan          | < 50 % | 50–79 %  | ≥ 80 %  |
   | Temperature  | < 65 °C| 65–79 °C | ≥ 80 °C |
 
-- Process list: move with **↑ / ↓**, press **Del** to get a *Close process* confirmation with **Yes**
+- Process list with each process's VRAM and GPU **load %** (the busiest GPU engine it uses, like Task
+  Manager's GPU column, colored by level). Move with **↑ / ↓**, press **Del** to get a *Close process* confirmation with **Yes**
   (selected by default) and **Cancel** (use ← / → to switch, Enter to confirm, Esc to cancel).
 - Menu (**m**) with:
   - **Change theme**: 6 color themes for borders and backgrounds (NVIDIA Green, Deep Ocean, Dracula Night,
@@ -95,7 +96,8 @@ Keys: `↑/↓` select · `Del` close process · `m` menu · `t` theme · `x` ra
 
 > On Windows, NVML cannot report per-process VRAM under the WDDM driver model (every GeForce card), so the
 > app reads it from the Windows "GPU Process Memory" performance counters instead, the same source as Task
-> Manager's "Dedicated GPU memory" column. A process can still show `N/A` if it holds no dedicated VRAM.
+> Manager's "Dedicated GPU memory" column. Per-process load comes from the "GPU Engine" counters the same way
+> (it shows `N/A` for the first second while Windows takes its first sample).
 
 ## Development
 

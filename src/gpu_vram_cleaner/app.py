@@ -337,7 +337,7 @@ class VramCleanerApp(App):
 
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
-        table.add_columns("PID", "Process", "GPU", "VRAM", "Type", "Status")
+        table.add_columns("PID", "Process", "GPU", "VRAM", "Load", "Type", "Status")
         table.focus()
         self.refresh_data()
         self.set_interval(self.interval, self.refresh_data)
@@ -364,6 +364,7 @@ class VramCleanerApp(App):
                 process.name,
                 str(process.gpu_index),
                 fmt_bytes(process.used_memory),
+                colored(fmt_pct(process.load_pct), percent_level(process.load_pct)),
                 process.kind,
                 status,
                 key=f"{process.gpu_index}:{process.pid}",
