@@ -7,7 +7,7 @@ from enum import Enum
 import psutil
 
 from .models import GpuProcess
-from .protection import ProcessIdentity, is_protected
+from .protection import KERNEL_PIDS, ProcessIdentity, is_protected
 
 Identify = Callable[[int], ProcessIdentity | None]
 
@@ -81,6 +81,28 @@ def plan_radical_clean(
     return RadicalPlan(targets, protected)
 
 
+def app_root(proc: psutil.Process, own_pids: set[int]) -> psutil.Process:
+    """Climb to the top of a chain of same-named processes (Chrome, Electron apps, worker pools).
+
+    The process holding VRAM is often a helper (Chrome's GPU process) that the main process
+    respawns at once, so closing only the helper frees nothing. Never climbs into this app.
+    """
+    name = proc.name().lower()
+    while True:
+        try:
+            parent = proc.parent()
+            if (
+                parent is None
+                or parent.pid in own_pids
+                or parent.pid in KERNEL_PIDS
+                or parent.name().lower() != name
+            ):
+                return proc
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            return proc
+        proc = parent
+
+
 class ProcessKiller:
     def __init__(
         self, timeout: float = 3.0, identify: Identify = identify_process, own_pids: set[int] | None = None
@@ -97,21 +119,43 @@ class ProcessKiller:
             return KillResult(pid, identity.name, KillOutcome.PROTECTED)
         return KillResult(pid, identity.name, self._terminate(pid))
 
+    def _closable(self, proc: psutil.Process) -> bool:
+        identity = self.identify(proc.pid)
+        return identity is not None and not is_protected(identity, self.own_pids)
+
     def _terminate(self, pid: int) -> KillOutcome:
+        """Close the whole app the process belongs to: politely first, forcefully after the timeout."""
         try:
-            proc = psutil.Process(pid)
-            proc.terminate()
-            try:
-                proc.wait(timeout=self.timeout)
-            except psutil.TimeoutExpired:
-                proc.kill()
-                proc.wait(timeout=self.timeout)
+            target = psutil.Process(pid)
+            root = app_root(target, self.own_pids)
+            if root.pid != pid and not self._closable(root):
+                root = target
+            family = [root, *(p for p in root.children(recursive=True) if self._closable(p))]
         except psutil.NoSuchProcess:
             return KillOutcome.KILLED
         except psutil.AccessDenied:
             return KillOutcome.ACCESS_DENIED
-        except psutil.TimeoutExpired:
-            return KillOutcome.FAILED
+
+        denied = False
+        for proc in family:
+            try:
+                proc.terminate()
+            except psutil.NoSuchProcess:
+                pass
+            except psutil.AccessDenied:
+                denied = True
+        _, alive = psutil.wait_procs(family, timeout=self.timeout)
+        for proc in alive:
+            try:
+                proc.kill()
+            except psutil.NoSuchProcess:
+                pass
+            except psutil.AccessDenied:
+                denied = True
+        _, alive = psutil.wait_procs(alive, timeout=self.timeout)
+
+        if target in alive or root in alive:
+            return KillOutcome.ACCESS_DENIED if denied else KillOutcome.FAILED
         return KillOutcome.KILLED
 
     def radical_clean(self, processes: Iterable[GpuProcess]) -> list[KillResult]:
