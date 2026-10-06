@@ -73,3 +73,92 @@ def test_fill_load_sets_values_and_leaves_unknown_as_zero_only_when_counters_ran
 def test_demo_processes_report_a_load():
     provider = DemoGpuProvider(seed=1)
     assert all(p.load_pct is not None and 0 <= p.load_pct <= 100 for p in provider.processes())
+
+
+def test_nvml_provider_reads_clocks_and_power(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+
+    from gpu_vram_cleaner.provider import NvmlGpuProvider
+
+    class NVMLError(Exception):
+        pass
+
+    def no_processes(handle):
+        return []
+
+    fake = SimpleNamespace(
+        NVMLError=NVMLError,
+        NVML_TEMPERATURE_GPU=0,
+        NVML_CLOCK_GRAPHICS=0,
+        NVML_CLOCK_MEM=2,
+        nvmlInit=lambda: None,
+        nvmlShutdown=lambda: None,
+        nvmlSystemGetDriverVersion=lambda: "582.66",
+        nvmlDeviceGetCount=lambda: 1,
+        nvmlDeviceGetHandleByIndex=lambda i: "h0",
+        nvmlDeviceGetName=lambda h: b"GeForce GTX 1080 Ti",
+        nvmlDeviceGetMemoryInfo=lambda h: SimpleNamespace(used=2 * 1024**3, total=11 * 1024**3),
+        nvmlDeviceGetUtilizationRates=lambda h: SimpleNamespace(gpu=25),
+        nvmlDeviceGetTemperature=lambda h, sensor: 34,
+        nvmlDeviceGetFanSpeed=lambda h: 33,
+        nvmlDeviceGetClockInfo=lambda h, clock: {0: 1731, 2: 5622}[clock],
+        nvmlDeviceGetPowerUsage=lambda h: 120400,
+        nvmlDeviceGetEnforcedPowerLimit=lambda h: 250000,
+        nvmlDeviceGetComputeRunningProcesses=no_processes,
+        nvmlDeviceGetGraphicsRunningProcesses=no_processes,
+    )
+    monkeypatch.setitem(sys.modules, "pynvml", fake)
+    gpu = NvmlGpuProvider().gpus()[0]
+    assert gpu.name == "GeForce GTX 1080 Ti"
+    assert gpu.core_clock_mhz == 1731
+    assert gpu.memory_clock_mhz == 5622
+    assert gpu.power_w == 120.4
+    assert gpu.power_limit_w == 250.0
+
+
+def test_nvml_provider_tolerates_unsupported_power(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+
+    from gpu_vram_cleaner.provider import NvmlGpuProvider
+
+    class NVMLError(Exception):
+        pass
+
+    def unsupported(*args):
+        raise NVMLError("Not Supported")
+
+    fake = SimpleNamespace(
+        NVMLError=NVMLError,
+        NVML_TEMPERATURE_GPU=0,
+        NVML_CLOCK_GRAPHICS=0,
+        NVML_CLOCK_MEM=2,
+        nvmlInit=lambda: None,
+        nvmlShutdown=lambda: None,
+        nvmlSystemGetDriverVersion=lambda: "1",
+        nvmlDeviceGetCount=lambda: 1,
+        nvmlDeviceGetHandleByIndex=lambda i: "h0",
+        nvmlDeviceGetName=lambda h: "GPU",
+        nvmlDeviceGetMemoryInfo=unsupported,
+        nvmlDeviceGetUtilizationRates=unsupported,
+        nvmlDeviceGetTemperature=unsupported,
+        nvmlDeviceGetFanSpeed=unsupported,
+        nvmlDeviceGetClockInfo=unsupported,
+        nvmlDeviceGetPowerUsage=unsupported,
+        nvmlDeviceGetEnforcedPowerLimit=unsupported,
+    )
+    monkeypatch.setitem(sys.modules, "pynvml", fake)
+    gpu = NvmlGpuProvider().gpus()[0]
+    assert (gpu.core_clock_mhz, gpu.memory_clock_mhz, gpu.power_w, gpu.power_limit_w) == (
+        None,
+        None,
+        None,
+        None,
+    )
+
+
+def test_demo_gpus_report_clocks_and_power():
+    gpu = DemoGpuProvider(seed=1).gpus()[0]
+    assert gpu.core_clock_mhz and gpu.memory_clock_mhz
+    assert 0 < gpu.power_w <= gpu.power_limit_w

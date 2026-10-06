@@ -47,6 +47,16 @@ def fmt_pct(value: float | None) -> str:
     return "N/A" if value is None else f"{value:.0f}%"
 
 
+def fmt_mhz(value: int | None) -> str:
+    return "N/A" if value is None else f"{value} MHz"
+
+
+def fmt_power(watts: float | None, limit: float | None) -> str:
+    if watts is None:
+        return "N/A"
+    return f"{watts:.0f} W" if not limit else f"{watts:.0f} W / {limit:.0f} W"
+
+
 def fmt_bytes(value: int | None) -> str:
     if value is None:
         return "N/A"
@@ -106,7 +116,7 @@ class Graph(Widget):
 class GpuPanel(Vertical):
     DEFAULT_CSS = """
     GpuPanel {
-        height: 14;
+        height: 15;
         border: heavy $primary;
         border-title-color: $accent;
         border-title-style: bold;
@@ -114,7 +124,7 @@ class GpuPanel(Vertical):
         padding: 0 1;
         margin-bottom: 1;
     }
-    GpuPanel .summary { height: 2; }
+    GpuPanel .summary { height: 3; }
     GpuPanel Horizontal { height: 1fr; }
     """
 
@@ -151,6 +161,13 @@ class GpuPanel(Vertical):
             colored(fmt_pct(info.memory_pct), percent_level(info.memory_pct)),
             ("   Fan ", "dim"),
             colored(fmt_pct(info.fan_pct), fan_level(info.fan_pct)),
+            "\n",
+            ("Core ", "dim"),
+            fmt_mhz(info.core_clock_mhz),
+            ("   Memory ", "dim"),
+            fmt_mhz(info.memory_clock_mhz),
+            ("   Power ", "dim"),
+            colored(fmt_power(info.power_w, info.power_limit_w), percent_level(info.power_pct)),
         )
 
     def update_info(self, info: GpuInfo) -> None:

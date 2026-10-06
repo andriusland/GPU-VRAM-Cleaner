@@ -9,7 +9,8 @@ system and the processes holding its VRAM, and lets you close them to free memor
 
 ## Features
 
-- One panel per GPU with model, driver version, temperature (°C), load and VRAM used/total.
+- One panel per GPU with model, driver version, temperature (°C), load, VRAM used/total, core and memory
+  clocks (MHz) and power draw against the power limit (W).
 - Three live graphs per GPU, refreshed every second: **VRAM %**, **fan %** and **load %**.
 - Percentages and temperatures change color with their level (green / yellow / red):
 

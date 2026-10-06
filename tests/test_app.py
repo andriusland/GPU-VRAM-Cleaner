@@ -8,7 +8,20 @@ from gpu_vram_cleaner.models import GpuInfo, GpuProcess
 class FakeProvider:
     def __init__(self):
         self.gpu_list = [
-            GpuInfo(0, "RTX Test A", "555.55", 70, 90, 6 * 1024**3, 8 * 1024**3, 40),
+            GpuInfo(
+                0,
+                "RTX Test A",
+                "555.55",
+                70,
+                90,
+                6 * 1024**3,
+                8 * 1024**3,
+                40,
+                core_clock_mhz=1731,
+                memory_clock_mhz=5622,
+                power_w=120.4,
+                power_limit_w=250.0,
+            ),
             GpuInfo(1, "RTX Test B", "555.55", 40, 10, 1 * 1024**3, 8 * 1024**3, None),
         ]
         self.process_list = [
@@ -191,3 +204,15 @@ async def test_process_list_shows_load_column(tmp_path):
         load_cell = row[labels.index("Load")]
         assert str(load_cell) == "93%"
         assert str(table.get_row_at(1)[labels.index("Load")]) == "N/A"
+
+
+async def test_gpu_panel_shows_clocks_and_power(tmp_path):
+    app, _ = make_app(tmp_path)
+    async with app.run_test(size=(140, 50)):
+        text = app.query_one("#gpu-0", GpuPanel).summary_text().plain
+        assert "Core 1731 MHz" in text
+        assert "Memory 5622 MHz" in text
+        assert "Power 120 W / 250 W" in text
+        missing = app.query_one("#gpu-1", GpuPanel).summary_text().plain
+        assert "Core N/A" in missing
+        assert "Power N/A" in missing
