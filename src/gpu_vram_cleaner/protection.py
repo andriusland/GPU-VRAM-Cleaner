@@ -26,6 +26,7 @@ PROTECTED_NAMES = frozenset(
         "taskhostw.exe",
         "audiodg.exe",
         "ShellExperienceHost.exe",
+        "ShellHost.exe",
         "StartMenuExperienceHost.exe",
         "SearchHost.exe",
         "SearchApp.exe",

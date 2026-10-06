@@ -162,3 +162,16 @@ def test_demo_gpus_report_clocks_and_power():
     gpu = DemoGpuProvider(seed=1).gpus()[0]
     assert gpu.core_clock_mhz and gpu.memory_clock_mhz
     assert 0 < gpu.power_w <= gpu.power_limit_w
+
+
+def test_add_counter_processes_lists_apps_nvml_does_not_report():
+    from gpu_vram_cleaner.models import GpuProcess
+    from gpu_vram_cleaner.provider import add_counter_processes
+
+    processes = [GpuProcess(10, "chrome.exe", 0, 500, "G")]
+    memory = {(0, 10): 500, (0, 20): 300, (0, 30): 0}
+    names = {20: "Code.exe", 30: "idle.exe"}
+    merged = add_counter_processes(processes, memory, names.get)
+    rows = [(p.pid, p.name, p.used_memory) for p in merged]
+    assert rows == [(10, "chrome.exe", 500), (20, "Code.exe", 300)]
+    assert merged[1].kind == "G"
