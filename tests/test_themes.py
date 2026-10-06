@@ -22,13 +22,13 @@ def test_theme_choice_round_trips(tmp_path):
 
 
 def test_missing_or_broken_settings_fall_back_to_default(tmp_path):
-    assert load_theme_name(tmp_path / "missing.json") == THEMES[0].name
+    assert load_theme_name(tmp_path / "missing.json") == "vram-synthwave"
     broken = tmp_path / "broken.json"
     broken.write_text("{not json")
-    assert load_theme_name(broken) == THEMES[0].name
+    assert load_theme_name(broken) == "vram-synthwave"
 
 
 def test_unknown_theme_falls_back_to_default(tmp_path):
     path = tmp_path / "settings.json"
     save_theme_name("does-not-exist", path)
-    assert load_theme_name(path) == THEMES[0].name
+    assert load_theme_name(path) == "vram-synthwave"
