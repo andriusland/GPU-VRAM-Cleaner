@@ -1,0 +1,38 @@
+[project]
+name = "gpu-vram-cleaner"
+version = "0.1.0"
+description = "Terminal UI to monitor NVIDIA GPUs and free VRAM by closing the processes that use it"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "colorama>=0.4.6",
+    "nvidia-ml-py>=13.615.71",
+    "psutil>=7.2.2",
+    "textual>=8.2.8",
+]
+
+[project.scripts]
+gpu-vram-cleaner = "gpu_vram_cleaner:main"
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.10",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
