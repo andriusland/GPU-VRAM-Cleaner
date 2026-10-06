@@ -88,7 +88,7 @@ async def test_arrows_move_and_delete_asks_to_close_with_yes_focused(tmp_path):
         await pilot.pause()
         assert isinstance(app.screen, ConfirmDialog)
         assert "Close process" in app.screen.title_text
-        assert app.screen.focused.id == "yes"
+        assert (await settled_focus(pilot, app.screen)).id == "yes"
         await pilot.press("enter")
         await app.workers.wait_for_complete()
         assert killer.killed == [202]
@@ -100,7 +100,7 @@ async def test_cancel_does_not_kill(tmp_path):
         await pilot.press("delete")
         await pilot.pause()
         await pilot.press("right")
-        assert app.screen.focused.id == "cancel"
+        assert (await settled_focus(pilot, app.screen)).id == "cancel"
         await pilot.press("enter")
         await pilot.pause()
         assert killer.killed == []
@@ -142,6 +142,15 @@ async def test_synthwave_neon_is_the_default_theme(tmp_path):
         assert app.theme == "vram-synthwave"
 
 
+async def settled_focus(pilot, screen, attempts=20):
+    """Focus lands a few frames after a screen is pushed; slow CI runners need more than one pause."""
+    for _ in range(attempts):
+        if screen.focused is not None:
+            break
+        await pilot.pause()
+    return screen.focused
+
+
 async def test_radical_clean_needs_two_red_confirmations(tmp_path):
     app, killer = make_app(tmp_path)
     async with app.run_test(size=(140, 50)) as pilot:
@@ -151,7 +160,7 @@ async def test_radical_clean_needs_two_red_confirmations(tmp_path):
         assert isinstance(first, ConfirmDialog)
         assert "Dangerous" in first.title_text
         assert first.has_class("-danger")
-        assert first.focused.id == "cancel"
+        assert (await settled_focus(pilot, first)).id == "cancel"
         first.query_one("#yes", Button).press()
         await pilot.pause()
 
@@ -160,7 +169,7 @@ async def test_radical_clean_needs_two_red_confirmations(tmp_path):
         assert second.has_class("-danger")
         assert second.message.startswith("Are you sure?")
         assert "This can be potentially unsafe for your system" in second.message
-        assert second.focused.id == "cancel"
+        assert (await settled_focus(pilot, second)).id == "cancel"
         assert killer.radical_calls == []
 
         second.query_one("#yes", Button).press()
