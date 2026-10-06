@@ -58,3 +58,9 @@ def test_radical_clean_kills_every_target(sleeper):
     processes = [GpuProcess(pid=sleeper.pid, name="python", gpu_index=0, used_memory=None)]
     results = killer.radical_clean(processes)
     assert [r.outcome for r in results] == [KillOutcome.KILLED]
+
+
+def test_gpu_reported_name_protects_even_when_lookup_fails():
+    processes = [GpuProcess(pid=55, name="dwm.exe", gpu_index=0, used_memory=1)]
+    plan = plan_radical_clean(processes, identify=lambda pid: None, own_pids=set())
+    assert plan.targets == []
