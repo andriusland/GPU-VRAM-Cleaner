@@ -9,7 +9,7 @@ __version__ = "0.1.0"
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="gpu-vram-cleaner", description=__doc__)
+    parser = argparse.ArgumentParser(prog="gpu-cleaner", description=__doc__)
     parser.add_argument("--demo", action="store_true", help="use simulated GPUs (no NVIDIA card needed)")
     parser.add_argument("--interval", type=float, default=1.0, help="refresh interval in seconds (default 1)")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -34,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{Fore.RED}{Style.BRIGHT}Error:{Style.RESET_ALL} {exc}", file=sys.stderr)
             print(
                 f"{Fore.YELLOW}Make sure an NVIDIA GPU and driver are installed, "
-                f"or try {Fore.CYAN}gpu-vram-cleaner --demo{Style.RESET_ALL}",
+                f"or try {Fore.CYAN}gpu-cleaner --demo{Style.RESET_ALL}",
                 file=sys.stderr,
             )
             return 1

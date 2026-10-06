@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-gpu-vram-cleaner = "gpu_vram_cleaner:main"
+gpu-cleaner = "gpu_vram_cleaner:main"
 
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]

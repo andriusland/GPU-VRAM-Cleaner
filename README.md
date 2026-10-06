@@ -50,7 +50,7 @@ Requires [uv](https://docs.astral.sh/uv/) and an NVIDIA GPU with its driver inst
 ```powershell
 git clone https://github.com/andriusland/GPU-VRAM-Cleaner
 cd GPU-VRAM-Cleaner
-uv run gpu-vram-cleaner
+uv run gpu-cleaner
 ```
 
 Options:
