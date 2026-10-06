@@ -218,6 +218,7 @@ class _ListScreen(ModalScreen[str | None]):
     }
     _ListScreen #heading { text-style: bold; color: $accent; margin-bottom: 1; }
     _ListScreen OptionList { height: auto; max-height: 12; }
+    _ListScreen OptionList, _ListScreen OptionList:focus { border: none; }
     """
     BINDINGS = [Binding("escape", "close", "Close")]
     heading = ""
@@ -278,7 +279,6 @@ class ThemeScreen(_ListScreen):
 class VramCleanerApp(App):
     TITLE = "GPU VRAM Cleaner"
     CSS = """
-    Screen { background: $background; }
     #gpus { height: 2fr; padding: 0 1; }
     #processes {
         height: 1fr; min-height: 8;

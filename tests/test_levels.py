@@ -43,5 +43,4 @@ def test_unknown_values_have_unknown_level():
 def test_each_level_has_a_distinct_color():
     colors = {level_color(level) for level in Level}
     assert len(colors) == len(Level)
-    assert level_color(Level.OK) == "green"
-    assert level_color(Level.CRITICAL) == "red"
+    assert all(color.startswith("#") and len(color) == 7 for color in colors)

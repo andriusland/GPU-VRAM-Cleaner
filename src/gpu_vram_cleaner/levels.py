@@ -11,10 +11,10 @@ class Level(Enum):
 
 
 _COLORS = {
-    Level.OK: "green",
-    Level.WARN: "yellow",
-    Level.CRITICAL: "red",
-    Level.UNKNOWN: "grey50",
+    Level.OK: "#3FB950",
+    Level.WARN: "#E3B341",
+    Level.CRITICAL: "#F85149",
+    Level.UNKNOWN: "#8B949E",
 }
 
 

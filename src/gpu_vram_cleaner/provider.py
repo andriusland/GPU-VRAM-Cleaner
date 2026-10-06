@@ -131,10 +131,9 @@ class DemoGpuProvider:
         result = []
         for index, (name, total_gib) in enumerate(self._gpus):
             total = total_gib * 1024**3
-            used = min(
-                total,
-                sum(p.used_memory or 0 for p in self._processes if p.gpu_index == index) + 512 * 1024**2,
-            )
+            base = sum(p.used_memory or 0 for p in self._processes if p.gpu_index == index) + 512 * 1024**2
+            jitter = int(self._random.uniform(-0.02, 0.02) * total)
+            used = max(0, min(total, base + jitter))
             wave = (math.sin(self._tick / (6 + index * 3)) + 1) / 2
             load = min(100.0, wave * 90 + self._random.uniform(0, 10))
             result.append(
