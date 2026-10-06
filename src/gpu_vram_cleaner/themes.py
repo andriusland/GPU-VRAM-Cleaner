@@ -96,7 +96,7 @@ THEME_LABELS = {
     "vram-synthwave": "Synthwave Neon",
 }
 
-DEFAULT_THEME = THEMES[0].name
+DEFAULT_THEME = "vram-synthwave"
 
 
 def settings_path() -> Path:

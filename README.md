@@ -5,7 +5,7 @@
 A terminal UI (Textual + colorama) for Windows Terminal / PowerShell that shows every NVIDIA GPU in the
 system and the processes holding its VRAM, and lets you close them to free memory.
 
-![Close process dialog](docs/close-process.png)
+![GPU VRAM Cleaner with the Synthwave Neon theme](docs/main-synthwave.png)
 
 ## Features
 
@@ -25,14 +25,19 @@ system and the processes holding its VRAM, and lets you close them to free memor
   (selected by default) and **Cancel** (use ← / → to switch, Enter to confirm, Esc to cancel).
 - Menu (**m**) with:
   - **Change theme**: 7 color themes for borders and backgrounds (NVIDIA Green, Deep Ocean, Dracula Night,
-    Solar Flare, Nord Frost, Paper Light, Synthwave Neon). Themes preview live as you move; the choice is saved.
+    Solar Flare, Nord Frost, Paper Light and Synthwave Neon, the default). Themes preview live as you
+    move; the choice is saved.
   - **Radical clean**: closes every process using VRAM in one go. It is marked **Dangerous**: two red
     confirmation popups, the second one asking "Are you sure? This can be potentially unsafe for your
     system." (Cancel is the default in both).
 
-![Theme menu](docs/themes.png)
+| Close process | Radical clean (Dangerous) |
+|---|---|
+| ![Close process dialog](docs/close-process.png) | ![Radical clean second confirmation](docs/radical-clean.png) |
 
-![Synthwave Neon theme](docs/synthwave.png)
+| NVIDIA Green theme | Theme menu |
+|---|---|
+| ![NVIDIA Green theme](docs/main-nvidia.png) | ![Theme menu](docs/themes.png) |
 
 ## Keeping Windows safe
 
