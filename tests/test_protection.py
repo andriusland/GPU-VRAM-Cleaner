@@ -9,13 +9,24 @@ def identity(pid=1234, name="game.exe", username="DESKTOP\\andres"):
 
 @pytest.mark.parametrize(
     "name",
-    ["dwm.exe", "csrss.exe", "winlogon.exe", "explorer.exe", "services.exe", "lsass.exe", "svchost.exe", "DWM.EXE"],
+    [
+        "dwm.exe",
+        "csrss.exe",
+        "winlogon.exe",
+        "explorer.exe",
+        "services.exe",
+        "lsass.exe",
+        "svchost.exe",
+        "DWM.EXE",
+    ],
 )
 def test_critical_windows_processes_are_protected(name):
     assert is_protected(identity(name=name), own_pids=set())
 
 
-@pytest.mark.parametrize("username", ["NT AUTHORITY\\SYSTEM", "NT AUTHORITY\\LOCAL SERVICE", "NT AUTHORITY\\NETWORK SERVICE"])
+@pytest.mark.parametrize(
+    "username", ["NT AUTHORITY\\SYSTEM", "NT AUTHORITY\\LOCAL SERVICE", "NT AUTHORITY\\NETWORK SERVICE"]
+)
 def test_service_accounts_are_protected(username):
     assert is_protected(identity(username=username), own_pids=set())
 

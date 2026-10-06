@@ -5,7 +5,14 @@ from gpu_vram_cleaner.levels import Level, fan_level, level_color, percent_level
 
 @pytest.mark.parametrize(
     ("value", "expected"),
-    [(0, Level.OK), (59.9, Level.OK), (60, Level.WARN), (84.9, Level.WARN), (85, Level.CRITICAL), (100, Level.CRITICAL)],
+    [
+        (0, Level.OK),
+        (59.9, Level.OK),
+        (60, Level.WARN),
+        (84.9, Level.WARN),
+        (85, Level.CRITICAL),
+        (100, Level.CRITICAL),
+    ],
 )
 def test_percent_level_thresholds(value, expected):
     assert percent_level(value) is expected
