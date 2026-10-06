@@ -64,3 +64,14 @@ def test_gpu_reported_name_protects_even_when_lookup_fails():
     processes = [GpuProcess(pid=55, name="dwm.exe", gpu_index=0, used_memory=1)]
     plan = plan_radical_clean(processes, identify=lambda pid: None, own_pids=set())
     assert plan.targets == []
+
+
+def test_demo_killer_never_touches_real_processes(sleeper):
+    from gpu_vram_cleaner.killer import DemoKiller
+    from gpu_vram_cleaner.provider import DemoGpuProvider
+
+    provider = DemoGpuProvider(seed=1)
+    first = provider.processes()[0]
+    assert DemoKiller(provider).kill(first.pid).name == first.name
+    assert DemoKiller(provider).kill(sleeper.pid).outcome is KillOutcome.KILLED
+    assert sleeper.poll() is None

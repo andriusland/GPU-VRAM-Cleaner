@@ -55,6 +55,14 @@ def own_process_tree() -> set[int]:
     return {me.pid, *(parent.pid for parent in me.parents())}
 
 
+def process_is_protected(process: GpuProcess, identify: Identify, own_pids: set[int]) -> bool:
+    """Check both the name the GPU driver reported and the live process identity."""
+    if is_protected(ProcessIdentity(process.pid, process.name, None), own_pids):
+        return True
+    identity = identify(process.pid)
+    return identity is not None and is_protected(identity, own_pids)
+
+
 def plan_radical_clean(
     processes: Iterable[GpuProcess], identify: Identify = identify_process, own_pids: set[int] | None = None
 ) -> RadicalPlan:
@@ -66,8 +74,7 @@ def plan_radical_clean(
         if process.pid in seen:
             continue
         seen.add(process.pid)
-        identity = identify(process.pid)
-        if identity is not None and is_protected(identity, own):
+        if process_is_protected(process, identify, own):
             protected.append(process)
         else:
             targets.append(process)
@@ -110,3 +117,17 @@ class ProcessKiller:
     def radical_clean(self, processes: Iterable[GpuProcess]) -> list[KillResult]:
         plan = plan_radical_clean(processes, self.identify, self.own_pids)
         return [self.kill(process.pid) for process in plan.targets]
+
+
+class DemoKiller:
+    """Pretends to close the simulated processes of the demo provider; never touches real ones."""
+
+    def __init__(self, provider) -> None:
+        self.provider = provider
+
+    def kill(self, pid: int) -> KillResult:
+        name = next((p.name for p in self.provider.processes() if p.pid == pid), f"pid {pid}")
+        return KillResult(pid, name, KillOutcome.KILLED)
+
+    def radical_clean(self, processes: Iterable[GpuProcess]) -> list[KillResult]:
+        return [self.kill(process.pid) for process in processes]
