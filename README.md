@@ -8,7 +8,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/gpu-vram-cleaner?logo=python&logoColor=white)](https://pypi.org/project/gpu-vram-cleaner/)
 [![Downloads](https://img.shields.io/pepy/dt/gpu-vram-cleaner)](https://pepy.tech/project/gpu-vram-cleaner)
 [![CI](https://github.com/andriusland/GPU-VRAM-Cleaner/actions/workflows/ci.yml/badge.svg)](https://github.com/andriusland/GPU-VRAM-Cleaner/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](https://github.com/andriusland/GPU-VRAM-Cleaner/blob/main/LICENSE)
 [![Built with Textual](https://img.shields.io/badge/built%20with-Textual-5A4FCF)](https://textual.textualize.io/)
 
 **Tired of not being able to kill the processes that eat up your GPU? Now you finally can.**
