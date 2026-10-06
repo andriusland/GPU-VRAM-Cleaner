@@ -2,6 +2,7 @@
 
 import math
 import random
+from collections.abc import Callable
 from dataclasses import replace
 from typing import Protocol
 
@@ -42,6 +43,19 @@ def fill_missing_memory(processes: list[GpuProcess], memory: dict[tuple[int, int
         else p
         for p in processes
     ]
+
+
+def add_counter_processes(
+    processes: list[GpuProcess], memory: dict[tuple[int, int], int], name_of: Callable[[int], str | None]
+) -> list[GpuProcess]:
+    """Add processes holding VRAM that NVML leaves out under WDDM (VS Code, Electron apps, ...)."""
+    listed = {(p.gpu_index, p.pid) for p in processes}
+    extra = [
+        GpuProcess(pid, name_of(pid) or f"pid {pid}", gpu, used, "G")
+        for (gpu, pid), used in memory.items()
+        if used > 0 and (gpu, pid) not in listed
+    ]
+    return processes + extra
 
 
 def fill_load(processes: list[GpuProcess], load: dict[tuple[int, int], float] | None) -> list[GpuProcess]:
@@ -129,7 +143,7 @@ class NvmlGpuProvider:
             nvml_used = self._nvml_used()
             snapshot = self._counters.snapshot()
             memory = process_memory_by_gpu(nvml_used, snapshot.processes, snapshot.adapters)
-            processes = fill_missing_memory(processes, memory)
+            processes = add_counter_processes(fill_missing_memory(processes, memory), memory, _process_name)
             if snapshot.engines:
                 processes = fill_load(
                     processes, process_load_by_gpu(nvml_used, snapshot.engines, snapshot.adapters)

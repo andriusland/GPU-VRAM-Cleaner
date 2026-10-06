@@ -18,6 +18,7 @@ def identity(pid=1234, name="game.exe", username="DESKTOP\\andres"):
         "lsass.exe",
         "svchost.exe",
         "DWM.EXE",
+        "ShellHost.exe",
     ],
 )
 def test_critical_windows_processes_are_protected(name):
