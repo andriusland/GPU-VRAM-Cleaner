@@ -1,5 +1,7 @@
 # GPU VRAM Cleaner
 
+**Tired of not being able to kill the processes that eat up your GPU? Now you finally can.**
+
 A terminal UI (Textual + colorama) for Windows Terminal / PowerShell that shows every NVIDIA GPU in the
 system and the processes holding its VRAM, and lets you close them to free memory.
 
@@ -22,8 +24,9 @@ system and the processes holding its VRAM, and lets you close them to free memor
 - Menu (**m**) with:
   - **Change theme**: 6 color themes for borders and backgrounds (NVIDIA Green, Deep Ocean, Dracula Night,
     Solar Flare, Nord Frost, Paper Light). Themes preview live as you move; the choice is saved.
-  - **Radical clean**: closes every process using VRAM in one go, after a confirmation (Cancel is the
-    default there).
+  - **Radical clean**: closes every process using VRAM in one go. It is marked **Dangerous**: two red
+    confirmation popups, the second one asking "Are you sure? This can be potentially unsafe for your
+    system." (Cancel is the default in both).
 
 ![Theme menu](docs/themes.png)
 
@@ -43,9 +46,37 @@ Python/CUDA jobs, Blender, OBS, Discord, ...) is closed: first politely (`termin
 (`kill`) if it does not exit within 3 seconds. Closing processes owned by other users requires running the
 terminal as administrator.
 
-## Install and run
+## Install
 
 Requires [uv](https://docs.astral.sh/uv/) and an NVIDIA GPU with its driver installed (NVML ships with it).
+If you don't have uv yet, install it from PowerShell:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### System-wide (recommended)
+
+Install `gpu-cleaner` as a command available from any terminal:
+
+```powershell
+uv tool install git+https://github.com/andriusland/GPU-VRAM-Cleaner
+uv tool update-shell   # only the first time: adds uv's tool folder to your PATH
+```
+
+Open a new terminal and run:
+
+```powershell
+gpu-cleaner
+```
+
+Update to the latest version with `uv tool upgrade gpu-vram-cleaner`, and remove it with
+`uv tool uninstall gpu-vram-cleaner`.
+
+> Tip: to close processes owned by other users or by Windows services, open the terminal as
+> administrator before running `gpu-cleaner`.
+
+### From a clone (development)
 
 ```powershell
 git clone https://github.com/andriusland/GPU-VRAM-Cleaner
@@ -90,3 +121,7 @@ Layout (`src/gpu_vram_cleaner/`):
 | `killer.py`     | closing processes with psutil, radical clean planning             |
 | `themes.py`     | the six themes and saving the chosen one                          |
 | `app.py`        | the Textual app, dialogs and menus                                |
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).
