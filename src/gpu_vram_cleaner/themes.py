@@ -1,4 +1,4 @@
-"""The six color themes (borders and backgrounds) and persistence of the choice."""
+"""The color themes (borders and backgrounds) and persistence of the choice."""
 
 import json
 import os
@@ -73,6 +73,17 @@ THEMES: list[Theme] = [
         foreground="#2B2B2B",
         dark=False,
     ),
+    Theme(
+        name="vram-synthwave",
+        primary="#FF2BD6",
+        secondary="#00F0FF",
+        accent="#FFE600",
+        background="#12002B",
+        surface="#1D0540",
+        panel="#2A0A5C",
+        foreground="#F6E9FF",
+        dark=True,
+    ),
 ]
 
 THEME_LABELS = {
@@ -82,6 +93,7 @@ THEME_LABELS = {
     "vram-solar": "Solar Flare",
     "vram-nord": "Nord Frost",
     "vram-paper": "Paper Light",
+    "vram-synthwave": "Synthwave Neon",
 }
 
 DEFAULT_THEME = THEMES[0].name
