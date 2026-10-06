@@ -279,7 +279,7 @@ class ThemeScreen(_ListScreen):
 class VramCleanerApp(App):
     TITLE = "GPU VRAM Cleaner"
     CSS = """
-    #gpus { height: 2fr; padding: 0 1; }
+    #gpus { height: auto; max-height: 75%; padding: 0 1; }
     #processes {
         height: 1fr; min-height: 8;
         border: heavy $primary; border-title-color: $accent; border-title-style: bold;

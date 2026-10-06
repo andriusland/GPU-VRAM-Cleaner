@@ -2,11 +2,13 @@
 
 import math
 import random
+from dataclasses import replace
 from typing import Protocol
 
 import psutil
 
 from .models import GpuInfo, GpuProcess
+from .wincounters import WindowsGpuMemoryCounters, process_memory_by_gpu
 
 
 class GpuProviderError(RuntimeError):
@@ -28,6 +30,16 @@ def _process_name(pid: int) -> str:
         return f"pid {pid}"
 
 
+def fill_missing_memory(processes: list[GpuProcess], memory: dict[tuple[int, int], int]) -> list[GpuProcess]:
+    """Use counter values for processes whose VRAM NVML could not report."""
+    return [
+        replace(p, used_memory=memory[(p.gpu_index, p.pid)])
+        if p.used_memory is None and (p.gpu_index, p.pid) in memory
+        else p
+        for p in processes
+    ]
+
+
 class NvmlGpuProvider:
     """Reads NVIDIA GPUs through NVML (nvidia-ml-py)."""
 
@@ -44,6 +56,7 @@ class NvmlGpuProvider:
         self._driver = self._text(pynvml.nvmlSystemGetDriverVersion())
         self._handles = [pynvml.nvmlDeviceGetHandleByIndex(i) for i in range(pynvml.nvmlDeviceGetCount())]
         self._names = [self._text(pynvml.nvmlDeviceGetName(h)) for h in self._handles]
+        self._counters = WindowsGpuMemoryCounters()
 
     @staticmethod
     def _text(value: str | bytes) -> str:
@@ -93,9 +106,22 @@ class NvmlGpuProvider:
                         continue
                     used = getattr(proc, "usedGpuMemory", None)
                     found[key] = GpuProcess(proc.pid, _process_name(proc.pid), index, used, kind)
-        return sorted(found.values(), key=lambda p: (p.gpu_index, -(p.used_memory or 0), p.pid))
+        processes = list(found.values())
+        if self._counters.available and any(p.used_memory is None for p in processes):
+            processes = fill_missing_memory(processes, self._counter_memory())
+        return sorted(processes, key=lambda p: (p.gpu_index, -(p.used_memory or 0), p.pid))
+
+    def _counter_memory(self) -> dict[tuple[int, int], int]:
+        nvml_used = {}
+        for index, handle in enumerate(self._handles):
+            memory = self._optional(self._nvml.nvmlDeviceGetMemoryInfo, handle)
+            if memory:
+                nvml_used[index] = memory.used
+        process_samples, adapter_samples = self._counters.snapshot()
+        return process_memory_by_gpu(nvml_used, process_samples, adapter_samples)
 
     def close(self) -> None:
+        self._counters.close()
         try:
             self._nvml.nvmlShutdown()
         except self._nvml.NVMLError:

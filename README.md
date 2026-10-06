@@ -62,7 +62,9 @@ Options:
 
 Keys: `↑/↓` select · `Del` close process · `m` menu · `t` theme · `x` radical clean · `q` quit.
 
-> On Windows, per-process VRAM usage may show `N/A`: under the WDDM driver model NVML often cannot report it.
+> On Windows, NVML cannot report per-process VRAM under the WDDM driver model (every GeForce card), so the
+> app reads it from the Windows "GPU Process Memory" performance counters instead, the same source as Task
+> Manager's "Dedicated GPU memory" column. A process can still show `N/A` if it holds no dedicated VRAM.
 
 ## Development
 
@@ -84,6 +86,7 @@ Layout (`src/gpu_vram_cleaner/`):
 | `history.py`    | rolling sample buffer for the graphs                              |
 | `graph.py`      | pure text rendering of the bar graphs                             |
 | `protection.py` | which processes must never be closed                              |
+| `wincounters.py` | per-process VRAM on Windows from the GPU performance counters     |
 | `killer.py`     | closing processes with psutil, radical clean planning             |
 | `themes.py`     | the six themes and saving the chosen one                          |
 | `app.py`        | the Textual app, dialogs and menus                                |
