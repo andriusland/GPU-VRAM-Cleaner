@@ -120,9 +120,28 @@ Options:
 ```text
 --demo          simulated GPUs and processes (nothing real is closed); handy without an NVIDIA card
 --interval S    refresh interval in seconds (default 1)
+--autoclean     close every unprotected process using VRAM and exit, without the UI
+--dry-run       with --autoclean: only list what would be closed
 ```
 
 Keys: `↑/↓` select · `Del` close process · `m` menu · `t` theme · `x` radical clean · `q` quit.
+
+### Clean VRAM from scripts
+
+`--autoclean` runs the same protected radical clean as `x`, with no UI and no confirmation, so you can free
+the GPU right before a training run:
+
+```powershell
+gpu-cleaner --autoclean --dry-run          # preview what would be closed
+gpu-cleaner --autoclean; python train.py   # PowerShell
+```
+
+```bash
+gpu-cleaner --autoclean && python train.py   # Linux: only train if every process was closed
+```
+
+It exits with `0` when every target is gone (or there was nothing to close) and `1` if any process could not
+be closed (for example, owned by another user without administrator rights).
 
 > On Windows, NVML cannot report per-process VRAM under the WDDM driver model (every GeForce card), so the
 > app reads it from the Windows "GPU Process Memory" performance counters instead, the same source as Task
