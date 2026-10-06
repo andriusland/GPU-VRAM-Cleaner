@@ -138,6 +138,7 @@ async def test_radical_clean_needs_two_red_confirmations(tmp_path):
         second = app.screen
         assert isinstance(second, ConfirmDialog) and second is not first
         assert second.has_class("-danger")
+        assert second.message.startswith("Are you sure?")
         assert "This can be potentially unsafe for your system" in second.message
         assert second.focused.id == "cancel"
         assert killer.radical_calls == []

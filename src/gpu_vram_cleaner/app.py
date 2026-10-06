@@ -178,6 +178,16 @@ class ConfirmDialog(ModalScreen[bool]):
     ConfirmDialog #message { width: 100%; margin: 1 0; content-align: center middle; }
     ConfirmDialog Horizontal { height: auto; align: center middle; }
     ConfirmDialog Button { margin: 0 2; min-width: 12; }
+    ConfirmDialog.-danger { background: #3A0000 60%; }
+    ConfirmDialog.-danger #dialog { border: thick #FF3B3B; background: #5C0A0A; }
+    ConfirmDialog.-danger #title { color: #FFFFFF; background: #D32F2F; }
+    ConfirmDialog.-danger #message { color: #FFE5E5; text-style: bold; }
+    ConfirmDialog.-danger #yes, ConfirmDialog.-danger #cancel {
+        background: #8E1B1B; color: #FFFFFF; border-top: tall #B23A3A; border-bottom: tall #4A0808;
+    }
+    ConfirmDialog.-danger #yes:focus, ConfirmDialog.-danger #cancel:focus {
+        background: #FF3B3B; text-style: bold reverse;
+    }
     """
     BINDINGS = [
         Binding("left", "app.focus_previous", "Previous", show=False),
@@ -185,8 +195,8 @@ class ConfirmDialog(ModalScreen[bool]):
         Binding("escape", "cancel", "Cancel"),
     ]
 
-    def __init__(self, title: str, message: str, default_yes: bool = True) -> None:
-        super().__init__()
+    def __init__(self, title: str, message: str, default_yes: bool = True, danger: bool = False) -> None:
+        super().__init__(classes="-danger" if danger else None)
         self.title_text = title
         self.message = message
         self.default_yes = default_yes
@@ -402,18 +412,31 @@ class VramCleanerApp(App):
             self.notify("No closable process is using VRAM.", title="Radical clean")
             return
 
-        def confirmed(yes: bool | None) -> None:
+        def second_confirmation(yes: bool | None) -> None:
             if yes:
                 self._radical(plan.targets)
 
+        def first_confirmation(yes: bool | None) -> None:
+            if yes:
+                self.push_screen(
+                    ConfirmDialog(
+                        "⚠ Dangerous",
+                        "Are you sure?\nThis can be potentially unsafe for your system.",
+                        default_yes=False,
+                        danger=True,
+                    ),
+                    second_confirmation,
+                )
+
         self.push_screen(
             ConfirmDialog(
-                "Radical clean",
+                "⚠ Dangerous · Radical clean",
                 f"Close {len(plan.targets)} process(es) using VRAM?\n"
                 f"{len(plan.protected)} protected Windows process(es) will be kept.",
                 default_yes=False,
+                danger=True,
             ),
-            confirmed,
+            first_confirmation,
         )
 
     @work(thread=True, exclusive=True, group="kill")
