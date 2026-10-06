@@ -28,3 +28,4 @@ class GpuProcess:
     gpu_index: int
     used_memory: int | None
     kind: str = "G"
+    load_pct: float | None = None
