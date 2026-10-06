@@ -30,6 +30,10 @@ def _process_name(pid: int) -> str:
         return f"pid {pid}"
 
 
+def _milliwatts(value: int | None) -> float | None:
+    return None if value is None else value / 1000
+
+
 def fill_missing_memory(processes: list[GpuProcess], memory: dict[tuple[int, int], int]) -> list[GpuProcess]:
     """Use counter values for processes whose VRAM NVML could not report."""
     return [
@@ -94,6 +98,12 @@ class NvmlGpuProvider:
                     memory_used=memory.used if memory else 0,
                     memory_total=memory.total if memory else 0,
                     fan_pct=self._optional(nvml.nvmlDeviceGetFanSpeed, handle),
+                    core_clock_mhz=self._optional(
+                        nvml.nvmlDeviceGetClockInfo, handle, nvml.NVML_CLOCK_GRAPHICS
+                    ),
+                    memory_clock_mhz=self._optional(nvml.nvmlDeviceGetClockInfo, handle, nvml.NVML_CLOCK_MEM),
+                    power_w=_milliwatts(self._optional(nvml.nvmlDeviceGetPowerUsage, handle)),
+                    power_limit_w=_milliwatts(self._optional(nvml.nvmlDeviceGetEnforcedPowerLimit, handle)),
                 )
             )
         return result
@@ -204,6 +214,10 @@ class DemoGpuProvider:
                     memory_used=used,
                     memory_total=total,
                     fan_pct=round(min(100.0, 25 + load * 0.7)),
+                    core_clock_mhz=round(1400 + load * 4.5),
+                    memory_clock_mhz=10501 if index == 0 else 7501,
+                    power_w=round(30 + load * (4.0 if index == 0 else 1.5), 1),
+                    power_limit_w=450.0 if index == 0 else 170.0,
                 )
             )
         return result
