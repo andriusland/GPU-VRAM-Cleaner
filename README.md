@@ -24,13 +24,15 @@ system and the processes holding its VRAM, and lets you close them to free memor
   Manager's GPU column, colored by level). Move with **↑ / ↓**, press **Del** to get a *Close process* confirmation with **Yes**
   (selected by default) and **Cancel** (use ← / → to switch, Enter to confirm, Esc to cancel).
 - Menu (**m**) with:
-  - **Change theme**: 6 color themes for borders and backgrounds (NVIDIA Green, Deep Ocean, Dracula Night,
-    Solar Flare, Nord Frost, Paper Light). Themes preview live as you move; the choice is saved.
+  - **Change theme**: 7 color themes for borders and backgrounds (NVIDIA Green, Deep Ocean, Dracula Night,
+    Solar Flare, Nord Frost, Paper Light, Synthwave Neon). Themes preview live as you move; the choice is saved.
   - **Radical clean**: closes every process using VRAM in one go. It is marked **Dangerous**: two red
     confirmation popups, the second one asking "Are you sure? This can be potentially unsafe for your
     system." (Cancel is the default in both).
 
 ![Theme menu](docs/themes.png)
+
+![Synthwave Neon theme](docs/synthwave.png)
 
 ## Keeping Windows safe
 
@@ -122,7 +124,7 @@ Layout (`src/gpu_vram_cleaner/`):
 | `protection.py` | which processes must never be closed                              |
 | `wincounters.py` | per-process VRAM on Windows from the GPU performance counters     |
 | `killer.py`     | closing processes with psutil, radical clean planning             |
-| `themes.py`     | the six themes and saving the chosen one                          |
+| `themes.py`     | the color themes and saving the chosen one                        |
 | `app.py`        | the Textual app, dialogs and menus                                |
 
 ## License

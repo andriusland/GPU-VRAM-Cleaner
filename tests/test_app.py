@@ -117,7 +117,7 @@ async def test_refresh_appends_history(tmp_path):
         assert panel.vram_history.latest == 75.0
 
 
-async def test_theme_menu_offers_six_themes_and_switches(tmp_path):
+async def test_theme_menu_offers_all_themes_and_switches(tmp_path):
     app, _ = make_app(tmp_path)
     async with app.run_test(size=(140, 50)) as pilot:
         await pilot.press("m")
@@ -128,7 +128,7 @@ async def test_theme_menu_offers_six_themes_and_switches(tmp_path):
         await pilot.pause()
         assert isinstance(app.screen, ThemeScreen)
         options = app.screen.query_one(OptionList)
-        assert options.option_count == 6
+        assert options.option_count == 7
         await pilot.press("down", "enter")
         await pilot.pause()
         assert app.theme == "vram-ocean"
