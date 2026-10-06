@@ -5,7 +5,7 @@
 A terminal UI (Textual + colorama) for Windows Terminal / PowerShell that shows every NVIDIA GPU in the
 system and the processes holding its VRAM, and lets you close them to free memory.
 
-![GPU VRAM Cleaner with the Synthwave Neon theme](docs/main-synthwave.png)
+![GPU VRAM Cleaner with the Synthwave Neon theme](https://raw.githubusercontent.com/andriusland/GPU-VRAM-Cleaner/main/docs/main-synthwave.png)
 
 ## Features
 
@@ -33,11 +33,11 @@ system and the processes holding its VRAM, and lets you close them to free memor
 
 | Close process | Radical clean (Dangerous) |
 |---|---|
-| ![Close process dialog](docs/close-process.png) | ![Radical clean second confirmation](docs/radical-clean.png) |
+| ![Close process dialog](https://raw.githubusercontent.com/andriusland/GPU-VRAM-Cleaner/main/docs/close-process.png) | ![Radical clean second confirmation](https://raw.githubusercontent.com/andriusland/GPU-VRAM-Cleaner/main/docs/radical-clean.png) |
 
 | NVIDIA Green theme | Theme menu |
 |---|---|
-| ![NVIDIA Green theme](docs/main-nvidia.png) | ![Theme menu](docs/themes.png) |
+| ![NVIDIA Green theme](https://raw.githubusercontent.com/andriusland/GPU-VRAM-Cleaner/main/docs/main-nvidia.png) | ![Theme menu](https://raw.githubusercontent.com/andriusland/GPU-VRAM-Cleaner/main/docs/themes.png) |
 
 ## Keeping Windows safe
 
@@ -57,21 +57,32 @@ terminal as administrator.
 
 ## Install
 
-Requires [uv](https://docs.astral.sh/uv/) and an NVIDIA GPU with its driver installed (NVML ships with it).
-If you don't have uv yet, install it from PowerShell:
-
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
+`gpu-vram-cleaner` is on [PyPI](https://pypi.org/project/gpu-vram-cleaner/) and works on Windows and Linux
+with an NVIDIA GPU and its driver installed (NVML ships with the driver). On macOS, or any machine without
+an NVIDIA card, it runs in `--demo` mode.
 
 ### System-wide (recommended)
 
-Install `gpu-cleaner` as a command available from any terminal:
+Install `gpu-cleaner` as a command available from any terminal with [uv](https://docs.astral.sh/uv/):
 
 ```powershell
-uv tool install git+https://github.com/andriusland/GPU-VRAM-Cleaner
+uv tool install gpu-vram-cleaner
 uv tool update-shell   # only the first time: adds uv's tool folder to your PATH
 ```
+
+If you don't have uv yet, install it first:
+
+```powershell
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+```bash
+# Linux / macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+[pipx](https://pipx.pypa.io/) works too: `pipx install gpu-vram-cleaner`.
 
 Open a new terminal and run:
 
@@ -82,8 +93,8 @@ gpu-cleaner
 Update to the latest version with `uv tool upgrade gpu-vram-cleaner`, and remove it with
 `uv tool uninstall gpu-vram-cleaner`.
 
-> Tip: to close processes owned by other users or by Windows services, open the terminal as
-> administrator before running `gpu-cleaner`.
+> Tip: to close processes owned by other users or by system services, open the terminal as
+> administrator (Windows) or run with `sudo` (Linux).
 
 ### From a clone (development)
 
